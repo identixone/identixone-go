@@ -1,14 +1,17 @@
 package person
 
 import (
+	"bytes"
 	"fmt"
 	"io"
+	"mime/multipart"
 
 	"github.com/identixone/identixone-go/api/common"
 	"github.com/identixone/identixone-go/api/const/conf"
 	"github.com/identixone/identixone-go/api/const/liveness"
 	"github.com/identixone/identixone-go/api/const/moods"
 	"github.com/identixone/identixone-go/api/const/sex"
+	"github.com/identixone/identixone-go/utils"
 )
 
 type Person struct {
@@ -31,8 +34,37 @@ type PersonaCreateRequest struct {
 	CreateLivenessOnly bool   `json:"create_liveness_only"`
 }
 
-func (pc *PersonaCreateRequest) IsValid() error {
-	if pc.PhotoData != nil && pc.PhotoName != "" {
+func (pc *PersonaCreateRequest) MultipartWriterData() ([]byte, *multipart.Writer, error) {
+
+	var buf bytes.Buffer
+	w := multipart.NewWriter(&buf)
+
+	part, err := w.CreateFormFile("photo", pc.PhotoName)
+	reader := bytes.NewReader(pc.PhotoData)
+	_, err = io.Copy(part, reader)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	perMap, err := utils.ToMap(pc)
+	if err != nil {
+		return nil, nil, err
+	}
+	for k, v := range perMap {
+		err := w.WriteField(k, fmt.Sprintf("%v", v))
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+	err = w.Close()
+	if err != nil {
+		return nil, nil, err
+	}
+	return buf.Bytes(), w, nil
+}
+
+func (pc *PersonaCreateRequest) Validate() error {
+	if pc.PhotoData == nil && pc.PhotoName == "" {
 		return fmt.Errorf("photo data or name is empty")
 	}
 	if pc.Source == "" {
@@ -94,6 +126,34 @@ type Search struct {
 	Liveness bool `json:"liveness"`
 }
 
+func (s *Search) MultipartWriterData() ([]byte, *multipart.Writer, error) {
+
+	var buf bytes.Buffer
+	w := multipart.NewWriter(&buf)
+
+	part, err := w.CreateFormFile("photo", s.PhotoName)
+	reader := bytes.NewReader(s.PhotoData)
+	_, err = io.Copy(part, reader)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = w.WriteField("asm", fmt.Sprintf("%v", s.Asm))
+	if err != nil {
+		return nil, nil, err
+	}
+	err = w.WriteField("liveness", fmt.Sprintf("%v", s.Liveness))
+	if err != nil {
+		return nil, nil, err
+	}
+
+	err = w.Close()
+	if err != nil {
+		return nil, nil, err
+	}
+	return buf.Bytes(), w, nil
+}
+
 func NewSearch(photoPath string, asm, liveness bool) (Search, error) {
 	search := Search{Asm: asm, Liveness: liveness}
 	err := search.FromFile(photoPath)
@@ -135,21 +195,50 @@ type ReinitImageRequest struct {
 	Idxid              string    `json:"-"`
 }
 
-func (ri *ReinitImageRequest) IsValid() error {
-	if ri.PhotoData != nil && ri.PhotoName != "" {
+func (ri *ReinitImageRequest) MultipartWriterData() ([]byte, *multipart.Writer, error) {
+	var buf bytes.Buffer
+	w := multipart.NewWriter(&buf)
+
+	part, err := w.CreateFormFile("photo", ri.PhotoName)
+	reader := bytes.NewReader(ri.PhotoData)
+	_, err = io.Copy(part, reader)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	perMap, err := utils.ToMap(ri)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	for k, v := range perMap {
+		err := w.WriteField(k, fmt.Sprintf("%v", v))
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+	err = w.Close()
+	if err != nil {
+		return nil, nil, err
+	}
+	return buf.Bytes(), w, nil
+}
+
+func (ri *ReinitImageRequest) Validate() error {
+	if ri.PhotoData == nil && ri.PhotoName == "" {
 		return fmt.Errorf("photo data or name is empty")
 	}
 	if ri.Source == "" {
 		return fmt.Errorf("source is required")
 	}
 
-	err := ri.Conf.IsValid()
+	err := ri.Conf.Validate()
 	return err
 }
 
-func NewReinitImageRequest(filePath string, idxid string) (ReinitImageRequest, error) {
+func NewReinitImageRequest(filePath string, idxid string, sourceName string) (ReinitImageRequest, error) {
 	var request ReinitImageRequest
-	request = ReinitImageRequest{Conf: conf.Ha, Idxid: idxid}
+	request = ReinitImageRequest{Conf: conf.Ha, Idxid: idxid, Source: sourceName}
 	err := request.FromFile(filePath)
 	if err != nil {
 		return request, err
@@ -188,12 +277,12 @@ func (ri *ReinitImageRequest) SetConf(val conf.Conf) *ReinitImageRequest {
 }
 
 type ReinitIdRequest struct {
-	Id       int `json:"id"`
+	ID       int `json:"id"`
 	Facesize int `json:"facesize"`
 }
 
-func (re *ReinitIdRequest) IsValid() error {
-	if re.Id < 1 {
+func (re *ReinitIdRequest) Validate() error {
+	if re.ID < 1 {
 		return fmt.Errorf("id is required")
 	}
 	return nil

@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/identixone/identixone-go/core"
+	"github.com/identixone/identixone-go/utils"
 )
 
 type Entries struct {
@@ -34,7 +35,7 @@ func (es *Entries) Delete(id int) error {
 
 func (es *Entries) StatsIdxid(idxid string) (StatsIdxid, error) {
 	var resp StatsIdxid
-	data, err := es.request.Get(fmt.Sprintf("v1/entries/stats/idxid/%s/", idxid), nil)
+	data, err := es.request.Get(fmt.Sprintf("/v1/entries/stats/idxid/%s/", idxid), nil)
 	if err != nil {
 		return resp, err
 	}
@@ -45,8 +46,13 @@ func (es *Entries) StatsIdxid(idxid string) (StatsIdxid, error) {
 	return resp, nil
 }
 
-func (es *Entries) StatsSources(query map[string]interface{}) (StatSourceResponse, error) {
-	var resp StatSourceResponse
+func (es *Entries) StatsSources(req StatsSourcesRequest) (StatSourcesResponse, error) {
+	var resp StatSourcesResponse
+
+	query, err := utils.ToMap(req)
+	if err != nil {
+		return resp, err
+	}
 	data, err := es.request.Get("/v1/entries/stats/sources/", query)
 	if err != nil {
 		return resp, err

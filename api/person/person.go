@@ -1,14 +1,10 @@
 package person
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io"
-	"mime/multipart"
 
 	"github.com/identixone/identixone-go/core"
-	"github.com/identixone/identixone-go/utils"
 )
 
 type Persons struct {
@@ -21,36 +17,15 @@ func NewPersons(request core.Requester) *Persons {
 
 func (p *Persons) Create(req PersonaCreateRequest) (Person, error) {
 	var person Person
-	if err := req.IsValid(); err != nil {
+	if err := req.Validate(); err != nil {
 		return person, err
 	}
 
-	var buf bytes.Buffer
-	w := multipart.NewWriter(&buf)
-
-	part, err := w.CreateFormFile("photo", req.PhotoName)
-	reader := bytes.NewReader(req.PhotoData)
-	_, err = io.Copy(part, reader)
+	in, w, err := req.MultipartWriterData()
 	if err != nil {
 		return person, err
 	}
-
-	perMap, err := utils.ToMap(req)
-	if err != nil {
-		return person, err
-	}
-	for k, v := range perMap {
-		err := w.WriteField(k, fmt.Sprintf("%v", v))
-		if err != nil {
-			return person, err
-		}
-	}
-	err = w.Close()
-	if err != nil {
-		return person, err
-	}
-
-	out, err := p.request.Post("/v1/persons/", buf.Bytes(), w.FormDataContentType())
+	out, err := p.request.Post("/v1/persons/", in, w.FormDataContentType())
 	if err != nil {
 		return person, err
 	}
@@ -65,33 +40,14 @@ func (p *Persons) Create(req PersonaCreateRequest) (Person, error) {
 
 func (p *Persons) Search(search Search) (SearchResult, error) {
 	var result SearchResult
-	if err := search.IsValid(); err != nil {
+	if err := search.Validate(); err != nil {
 		return result, err
 	}
-	var buf bytes.Buffer
-	w := multipart.NewWriter(&buf)
-
-	part, err := w.CreateFormFile("photo", search.PhotoName)
-	reader := bytes.NewReader(search.PhotoData)
-	_, err = io.Copy(part, reader)
+	in, w, err := search.MultipartWriterData()
 	if err != nil {
 		return result, err
 	}
-
-	err = w.WriteField("asm", fmt.Sprintf("%v", search.Asm))
-	if err != nil {
-		return result, err
-	}
-	err = w.WriteField("liveness", fmt.Sprintf("%v", search.Liveness))
-	if err != nil {
-		return result, err
-	}
-
-	err = w.Close()
-	if err != nil {
-		return result, err
-	}
-	data, err := p.request.Post("/v1/persons/search/", buf.Bytes(), w.FormDataContentType())
+	data, err := p.request.Post("/v1/persons/search/", in, w.FormDataContentType())
 	if err != nil {
 		if idxErr, ok := err.(core.IdentixOneError); ok {
 			if idxErr.Code == core.NotFound {
@@ -115,34 +71,14 @@ func (p *Persons) Delete(idxid string) error {
 }
 
 func (p *Persons) ReinitImage(req ReinitImageRequest) error {
-	if err := req.IsValid(); err != nil {
+	if err := req.Validate(); err != nil {
 		return err
 	}
-	var buf bytes.Buffer
-	w := multipart.NewWriter(&buf)
-
-	part, err := w.CreateFormFile("photo", req.PhotoName)
-	reader := bytes.NewReader(req.PhotoData)
-	_, err = io.Copy(part, reader)
+	in, w, err := req.MultipartWriterData()
 	if err != nil {
 		return err
 	}
-
-	perMap, err := utils.ToMap(req)
-	if err != nil {
-		return err
-	}
-	for k, v := range perMap {
-		err := w.WriteField(k, fmt.Sprintf("%v", v))
-		if err != nil {
-			return err
-		}
-	}
-	err = w.Close()
-	if err != nil {
-		return err
-	}
-	_, err = p.request.Post(fmt.Sprintf("/v1/persons/reinit/%s/", req.Idxid), buf.Bytes(), w.FormDataContentType())
+	_, err = p.request.Post(fmt.Sprintf("/v1/persons/reinit/%s/", req.Idxid), in, w.FormDataContentType())
 	if err != nil {
 		return err
 	}
@@ -150,7 +86,7 @@ func (p *Persons) ReinitImage(req ReinitImageRequest) error {
 }
 
 func (p *Persons) ReinitId(req ReinitIdRequest) error {
-	if err := req.IsValid(); err != nil {
+	if err := req.Validate(); err != nil {
 		return err
 	}
 	in, err := json.Marshal(req)

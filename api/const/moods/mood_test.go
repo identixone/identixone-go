@@ -22,7 +22,7 @@ func TestMood_String(t *testing.T) {
 	}
 }
 
-func TestMood_IsValid(t *testing.T) {
+func TestMood_Validate(t *testing.T) {
 	tests := []struct {
 		name    string
 		m       Mood
@@ -33,8 +33,8 @@ func TestMood_IsValid(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.m.IsValid(); (err != nil) != tt.wantErr {
-				t.Errorf("Mood.IsValid() error = %v, wantErr %v", err, tt.wantErr)
+			if err := tt.m.Validate(); (err != nil) != tt.wantErr {
+				t.Errorf("Mood.Validate() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}
@@ -61,6 +61,43 @@ func TestAll(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			if got := All(); !reflect.DeepEqual(got, tt.want) {
 				t.Errorf("All() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestMoods_Validate(t *testing.T) {
+	tests := []struct {
+		name    string
+		ms      Moods
+		wantErr bool
+	}{
+		{name: "valid", ms: Moods{
+			Mood("neutral"),
+			Mood("anger"),
+			Mood("contempt"),
+			Mood("disgust"),
+			Mood("fear"),
+			Mood("happiness"),
+			Mood("sadness"),
+			Mood("surprise"),
+		}, wantErr: false},
+		{name: "invalid", ms: Moods{
+			Mood("neutral"),
+			Mood("anger"),
+			Mood("contempt"),
+			Mood("disgust"),
+			Mood("fear"),
+			Mood("happiness"),
+			Mood("sadness"),
+			Mood("surprise"),
+			Mood("teapot"),
+		}, wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.ms.Validate(); (err != nil) != tt.wantErr {
+				t.Errorf("Moods.Validate() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

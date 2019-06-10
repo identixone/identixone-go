@@ -69,3 +69,21 @@ func TestAll(t *testing.T) {
 		})
 	}
 }
+
+func TestLivenesses_Validate(t *testing.T) {
+	tests := []struct {
+		name    string
+		ls      Livenesses
+		wantErr bool
+	}{
+		{name: "valid", ls: Livenesses{Liveness("passed"), Liveness("failed")}, wantErr: false},
+		{name: "valid", ls: Livenesses{Liveness("passed"), Liveness("failed"), Liveness("undetermined")}, wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.ls.Validate(); (err != nil) != tt.wantErr {
+				t.Errorf("Livenesses.Validate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}

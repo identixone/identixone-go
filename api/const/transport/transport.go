@@ -6,13 +6,9 @@ import (
 
 type Transport uint8
 
-func (t Transport) IsValid() error {
+func (t Transport) Validate() error {
 	switch t {
-	case Webhook:
-		return nil
-	case WebsocketClient:
-		return nil
-	case WebsocketServer:
+	case Webhook, WebsocketClient, WebsocketServer:
 		return nil
 	default:
 		return fmt.Errorf("unknown Transport %s", t)

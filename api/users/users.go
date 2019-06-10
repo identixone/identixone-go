@@ -36,9 +36,9 @@ func (u *Users) Me() (User, error) {
 // 	true – only permanent tokens, no parameter set – all tokens
 func (u *Users) ListTokens(permanent *bool) ([]Token, error) {
 	var tokens []Token
-	query := map[string]interface{}{}
+	var query map[string]interface{}
 	if permanent != nil {
-		query["permanent"] = permanent
+		query = map[string]interface{}{"permanent": permanent}
 	}
 	data, err := u.request.Get("/v1/users/tokens/", query)
 	if err != nil {
@@ -106,9 +106,12 @@ func (u *Users) DeleteAllToken(permanent *bool) error {
 }
 
 // Allows to change the user’s current password.
-func (u *Users) ChangePassword(pass, pass2 string, resetTokens bool) (ChangePasswordResponse, error) {
+func (u *Users) ChangePassword(req ChangePasswordRequest) (ChangePasswordResponse, error) {
 	var resp ChangePasswordResponse
-	in, err := json.Marshal(map[string]interface{}{"password": pass, "password2": pass2, "reset_tokens": resetTokens})
+	if err := req.Validate(); err != nil {
+		return resp, err
+	}
+	in, err := json.Marshal(req)
 	if err != nil {
 		return resp, err
 	}
@@ -123,17 +126,18 @@ func (u *Users) ChangePassword(pass, pass2 string, resetTokens bool) (ChangePass
 	return resp, nil
 }
 
-func (u *Users) CreateToken(permanent bool) (CreateTokenResponse, error) {
+func (u *Users) CreateToken(req CreateTokenRequest) (CreateTokenResponse, error) {
 	var resp CreateTokenResponse
 	url := "/v1/login/"
-	if permanent {
+	if req.Permanent {
 		url = "/v1/login/permanent"
 	}
 
-	in, err := json.Marshal(resp)
+	in, err := json.Marshal(req)
 	if err != nil {
 		return resp, err
 	}
+
 	data, err := u.request.Post(url, in, "application/json")
 	if err != nil {
 		return resp, err

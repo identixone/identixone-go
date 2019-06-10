@@ -1,10 +1,14 @@
 package person
 
 import (
+	"encoding/json"
 	"reflect"
 	"testing"
 
+	"github.com/golang/mock/gomock"
+
 	"github.com/identixone/identixone-go/core"
+	mock_core "github.com/identixone/identixone-go/core/mock"
 )
 
 func TestNewPersons(t *testing.T) {
@@ -30,121 +34,129 @@ func TestNewPersons(t *testing.T) {
 }
 
 func TestPersons_Create(t *testing.T) {
-	type args struct {
-		personCreate PersonaCreateRequest
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	req, err := NewPersonaCreateRequest("../../img/v2878.png", "default")
+	if err != nil {
+		t.Fatal(err)
 	}
-	tests := []struct {
-		name    string
-		p       *Persons
-		args    args
-		want    Person
-		wantErr bool
-	}{
-		// TODO: Add test cases.
+	in, w, err := req.MultipartWriterData()
+	if err != nil {
+		t.Fatal(err)
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.p.Create(tt.args.personCreate)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Persons.Create() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Persons.Create() = %v, want %v", got, tt.want)
-			}
-		})
+
+	m := mock_core.NewMockRequester(ctrl)
+	m.EXPECT().
+		Post("/v1/persons/", gomock.AssignableToTypeOf(in), gomock.AssignableToTypeOf(w.FormDataContentType())).
+		Return([]byte(`{"idxid": "idxid"}`), nil).
+		AnyTimes()
+
+	p := NewPersons(m)
+
+	resp, err := p.Create(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if resp.Idxid != "idxid" {
+		t.Fatal("expect fail")
 	}
 }
 
 func TestPersons_Search(t *testing.T) {
-	type args struct {
-		search Search
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	req, err := NewSearch("../../img/v2878.png", true, true)
+	if err != nil {
+		t.Fatal(err)
 	}
-	tests := []struct {
-		name    string
-		p       *Persons
-		args    args
-		want    SearchResult
-		wantErr bool
-	}{
-		// TODO: Add test cases.
+	in, w, err := req.MultipartWriterData()
+	if err != nil {
+		t.Fatal(err)
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.p.Search(tt.args.search)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Persons.Search() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Persons.Search() = %v, want %v", got, tt.want)
-			}
-		})
+	m := mock_core.NewMockRequester(ctrl)
+	m.EXPECT().
+		Post("/v1/persons/search/", gomock.AssignableToTypeOf(in), gomock.AssignableToTypeOf(w.FormDataContentType())).
+		Return([]byte(`{"idxid": "idxid"}`), nil).
+		AnyTimes()
+
+	p := NewPersons(m)
+
+	resp, err := p.Search(req)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if resp.Idxid != "idxid" {
+		t.Fatal("expect fail")
 	}
 }
 
 func TestPersons_Delete(t *testing.T) {
-	c, _ := core.NewRequest()
-	p := NewPersons(c)
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-	type args struct {
-		idxid string
-	}
-	tests := []struct {
-		name    string
-		p       *Persons
-		args    args
-		wantErr bool
-	}{
-		{name: "not found", p: p, args: args{idxid: "p"}, wantErr: true},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.p.Delete(tt.args.idxid); (err != nil) != tt.wantErr {
-				t.Errorf("Persons.Delete() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
+	m := mock_core.NewMockRequester(ctrl)
+	m.EXPECT().
+		Delete("/v1/persons/idxid/", nil).
+		Return(nil).
+		AnyTimes()
+
+	p := NewPersons(m)
+
+	err := p.Delete("idxid")
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 
 func TestPersons_ReinitImage(t *testing.T) {
-	type args struct {
-		reinitRequest ReinitImageRequest
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	req, err := NewReinitImageRequest("../../img/v2878.png", "idxid", "default")
+	if err != nil {
+		t.Fatal(err)
 	}
-	tests := []struct {
-		name    string
-		p       *Persons
-		args    args
-		wantErr bool
-	}{
-		// TODO: Add test cases.
+	in, w, err := req.MultipartWriterData()
+	if err != nil {
+		t.Fatal(err)
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.p.ReinitImage(tt.args.reinitRequest); (err != nil) != tt.wantErr {
-				t.Errorf("Persons.ReinitImage() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
+	m := mock_core.NewMockRequester(ctrl)
+	m.EXPECT().
+		Post("/v1/persons/reinit/idxid/", gomock.AssignableToTypeOf(in), gomock.AssignableToTypeOf(w.FormDataContentType())).
+		Return(nil, nil).
+		AnyTimes()
+
+	p := NewPersons(m)
+
+	err = p.ReinitImage(req)
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 
 func TestPersons_ReinitId(t *testing.T) {
-	type args struct {
-		reinitIdRequest ReinitIdRequest
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	req := ReinitIdRequest{ID: 10, Facesize: 100}
+	in, err := json.Marshal(req)
+	if err != nil {
+		t.Fatal(err)
 	}
-	tests := []struct {
-		name    string
-		p       *Persons
-		args    args
-		wantErr bool
-	}{
-		// TODO: Add test cases.
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.p.ReinitId(tt.args.reinitIdRequest); (err != nil) != tt.wantErr {
-				t.Errorf("Persons.ReinitId() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
+
+	m := mock_core.NewMockRequester(ctrl)
+
+	m.EXPECT().
+		Post("/v1/persons/reinit/", in, "application/json").
+		Return(nil, nil).
+		AnyTimes()
+
+	p := NewPersons(m)
+
+	err = p.ReinitId(req)
+	if err != nil {
+		t.Fatal(err)
 	}
 }

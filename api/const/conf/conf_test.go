@@ -93,3 +93,68 @@ func TestAll(t *testing.T) {
 		})
 	}
 }
+
+func TestConfs_Validate(t *testing.T) {
+	tests := []struct {
+		name    string
+		cs      Confs
+		wantErr bool
+	}{
+		{name: "valid", cs: Confs{Conf("ha"), Conf("junk"), Conf("exact"), Conf("nm"), Conf("reinit"), Conf("det"), Conf("new")}, wantErr: false},
+		{name: "invalid", cs: Confs{Conf("ha"), Conf("junk"), Conf("exact"), Conf("nm"), Conf("reinit"), Conf("det"), Conf("new"), Conf("teapot")}, wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.cs.Validate(); (err != nil) != tt.wantErr {
+				t.Errorf("Confs.Validate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestConf_String(t *testing.T) {
+	tests := []struct {
+		name string
+		c    Conf
+		want string
+	}{
+		{name: "new", c: New, want: "new"},
+		{name: "nm", c: Nm, want: "nm"},
+		{name: "exact", c: Exact, want: "exact"},
+		{name: "junk", c: Junk, want: "junk"},
+		{name: "ha", c: Ha, want: "ha"},
+		{name: "det", c: Det, want: "det"},
+		{name: "reinit", c: Reinit, want: "reinit"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.c.String(); got != tt.want {
+				t.Errorf("Conf.String() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}
+
+func TestConf_Validate(t *testing.T) {
+	tests := []struct {
+		name    string
+		c       Conf
+		wantErr bool
+	}{
+		{name: "new", c: Conf("new"), wantErr: false},
+		{name: "nm", c: Conf("nm"), wantErr: false},
+		{name: "exact", c: Conf("exact"), wantErr: false},
+		{name: "junk", c: Conf("junk"), wantErr: false},
+		{name: "ha", c: Conf("ha"), wantErr: false},
+		{name: "det", c: Conf("det"), wantErr: false},
+		{name: "reinit", c: Conf("reinit"), wantErr: false},
+		{name: "teapot", c: Conf("teapot"), wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.c.Validate(); (err != nil) != tt.wantErr {
+				t.Errorf("Conf.Validate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}

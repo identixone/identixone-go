@@ -1,46 +1,31 @@
 package utility
 
 import (
-	"bytes"
 	"encoding/json"
-	"fmt"
-	"io"
-	"mime/multipart"
 
-	"github.com/identixone/identixone-go/api/common"
 	"github.com/identixone/identixone-go/core"
 	"github.com/identixone/identixone-go/utils"
 )
 
 type Utility struct {
-	request *core.Request
+	request core.Requester
 }
 
-func NewUtility(request *core.Request) *Utility {
+func NewUtility(request core.Requester) *Utility {
 	return &Utility{request: request}
 }
 
-func (u *Utility) Asm(photo common.Photo) (AsmResponse, error) {
+func (u *Utility) Asm(req AsmRequest) (AsmResponse, error) {
 	var resp AsmResponse
 
-	if err := photo.IsValid(); err != nil {
+	if err := req.Validate(); err != nil {
 		return resp, err
 	}
-
-	var buf bytes.Buffer
-	w := multipart.NewWriter(&buf)
-
-	part, err := w.CreateFormFile("photo", photo.PhotoName)
-	reader := bytes.NewReader(photo.PhotoData)
-	_, err = io.Copy(part, reader)
+	in, w, err := req.MultipartWriterData()
 	if err != nil {
 		return resp, err
 	}
-	err = w.Close()
-	if err != nil {
-		return resp, err
-	}
-	data, err := u.request.Post("/v1/utility/asm/", buf.Bytes(), w.FormDataContentType())
+	data, err := u.request.Post("/v1/utility/asm/", in, w.FormDataContentType())
 	if err != nil {
 		return resp, err
 	}
@@ -52,25 +37,16 @@ func (u *Utility) Asm(photo common.Photo) (AsmResponse, error) {
 	return resp, nil
 }
 
-func (u *Utility) Liveness(photo common.Photo) (LivenessResponse, error) {
+func (u *Utility) Liveness(req LivenessRequest) (LivenessResponse, error) {
 	var resp LivenessResponse
-	if err := photo.IsValid(); err != nil {
+	if err := req.Validate(); err != nil {
 		return resp, err
 	}
-	var buf bytes.Buffer
-	w := multipart.NewWriter(&buf)
-
-	part, err := w.CreateFormFile("photo", photo.PhotoName)
-	reader := bytes.NewReader(photo.PhotoData)
-	_, err = io.Copy(part, reader)
+	in, w, err := req.MultipartWriterData()
 	if err != nil {
 		return resp, err
 	}
-	err = w.Close()
-	if err != nil {
-		return resp, err
-	}
-	data, err := u.request.Post("/v1/utility/liveness/", buf.Bytes(), w.FormDataContentType())
+	data, err := u.request.Post("/v1/utility/liveness/", in, w.FormDataContentType())
 	if err != nil {
 		return resp, err
 	}
@@ -82,47 +58,16 @@ func (u *Utility) Liveness(photo common.Photo) (LivenessResponse, error) {
 	return resp, nil
 }
 
-func (u *Utility) Compare(req CompareRequest) (LivenessResponse, error) {
-	var resp LivenessResponse
-	var buf bytes.Buffer
-	w := multipart.NewWriter(&buf)
-
-	part, err := w.CreateFormFile("photo1", req.Photo1.PhotoName)
-	reader := bytes.NewReader(req.Photo1.PhotoData)
-
-	_, err = io.Copy(part, reader)
+func (u *Utility) Compare(req CompareRequest) (CompareResponse, error) {
+	var resp CompareResponse
+	if err := req.Validate(); err != nil {
+		return resp, err
+	}
+	in, w, err := req.MultipartWriterData()
 	if err != nil {
 		return resp, err
 	}
-
-	part, err = w.CreateFormFile("photo2", req.Photo2.PhotoName)
-	reader = bytes.NewReader(req.Photo2.PhotoData)
-
-	_, err = io.Copy(part, reader)
-	if err != nil {
-		return resp, err
-	}
-
-	err = w.WriteField("liveness_photo1", fmt.Sprintf("%v", req.LivenessPhoto1))
-	if err != nil {
-		return resp, err
-	}
-
-	err = w.WriteField("liveness_photo2", fmt.Sprintf("%v", req.LivenessPhoto2))
-	if err != nil {
-		return resp, err
-	}
-
-	err = w.WriteField("conf", string(req.Conf))
-	if err != nil {
-		return resp, err
-	}
-
-	err = w.Close()
-	if err != nil {
-		return resp, err
-	}
-	data, err := u.request.Post("/v1/utility/compare/", buf.Bytes(), w.FormDataContentType())
+	data, err := u.request.Post("/v1/utility/compare/", in, w.FormDataContentType())
 	if err != nil {
 		return resp, err
 	}
@@ -136,7 +81,7 @@ func (u *Utility) Compare(req CompareRequest) (LivenessResponse, error) {
 
 func (u *Utility) Customer(req CustomerRequest) (CustomerResponse, error) {
 	var resp CustomerResponse
-	if err := req.IsValid(); err != nil {
+	if err := req.Validate(); err != nil {
 		return resp, err
 	}
 	if req.Offset == 0 {

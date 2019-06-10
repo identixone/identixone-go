@@ -35,29 +35,29 @@ func NewRequest() (*Request, error) {
 	return &Request{token: token, headers: headers}, nil
 }
 
-func (c *Request) SetToken(token string) {
-	c.token = token
-	c.headers = makeHeaders(token)
+func (r *Request) SetToken(token string) {
+	r.token = token
+	r.headers = makeHeaders(token)
 }
 
-func (c *Request) Get(path string, query map[string]interface{}) ([]byte, error) {
-	return c.request("GET", path, query, nil, "")
+func (r *Request) Get(path string, query map[string]interface{}) ([]byte, error) {
+	return r.request("GET", path, query, nil, "")
 }
 
-func (c *Request) Post(path string, data []byte, contentType string) ([]byte, error) {
-	return c.request("POST", path, nil, data, contentType)
+func (r *Request) Post(path string, data []byte, contentType string) ([]byte, error) {
+	return r.request("POST", path, nil, data, contentType)
 }
 
-func (c *Request) Patch(path string, data []byte, contentType string) ([]byte, error) {
-	return c.request("PATCH", path, nil, data, contentType)
+func (r *Request) Patch(path string, data []byte, contentType string) ([]byte, error) {
+	return r.request("PATCH", path, nil, data, contentType)
 }
 
-func (c *Request) Delete(path string, query map[string]interface{}) error {
-	_, err := c.request("DELETE", path, query, nil, "")
+func (r *Request) Delete(path string, query map[string]interface{}) error {
+	_, err := r.request("DELETE", path, query, nil, "")
 	return err
 }
 
-func (c *Request) request(method, path string, query map[string]interface{}, body []byte, contentType string) ([]byte, error) {
+func (r *Request) request(method, path string, query map[string]interface{}, body []byte, contentType string) ([]byte, error) {
 	url, err := makeUrl(path, query)
 	if err != nil {
 		return nil, err
@@ -69,7 +69,7 @@ func (c *Request) request(method, path string, query map[string]interface{}, bod
 		return nil, err
 	}
 
-	for key, value := range c.headers {
+	for key, value := range r.headers {
 		req.Header.Set(key, value)
 	}
 

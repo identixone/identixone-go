@@ -39,3 +39,39 @@ func TestAll(t *testing.T) {
 		})
 	}
 }
+
+func TestSexes_Validate(t *testing.T) {
+	tests := []struct {
+		name    string
+		sx      Sexes
+		wantErr bool
+	}{
+		{name: "valid", sx: Sexes{Male, Female}, wantErr: false},
+		{name: "invalid", sx: Sexes{Sex(0), Sex(1), Sex(10)}, wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.sx.Validate(); (err != nil) != tt.wantErr {
+				t.Errorf("Sexes.Validate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}
+
+func TestSex_Validate(t *testing.T) {
+	tests := []struct {
+		name    string
+		s       Sex
+		wantErr bool
+	}{
+		{name: "valid", s: Sex(1), wantErr: false},
+		{name: "invalid", s: Sex(10), wantErr: true},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := tt.s.Validate(); (err != nil) != tt.wantErr {
+				t.Errorf("Sex.Validate() error = %v, wantErr %v", err, tt.wantErr)
+			}
+		})
+	}
+}

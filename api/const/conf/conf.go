@@ -6,19 +6,31 @@ import (
 	"strings"
 )
 
-type Conf string
+type Confs []Conf
 
-func (c *Conf) String() string {
-	return string(*c)
-}
-
-func (c *Conf) IsValid() error {
-	for _, x := range All() {
-		if x.String() == c.String() {
-			return nil
+func (cs Confs) Validate() error {
+	for _, c := range cs {
+		if err := c.Validate(); err != nil {
+			return err
 		}
 	}
-	return fmt.Errorf("unknown type of Conf %s", c.String())
+	return nil
+}
+
+type Conf string
+
+func (c Conf) String() string {
+	return string(c)
+}
+
+func (c Conf) Validate() error {
+	switch c {
+	case Nm, New, Exact, Ha, Junk, Det, Reinit:
+		return nil
+	default:
+		return fmt.Errorf("unknown type of Conf %s", c.String())
+	}
+
 }
 
 func (c *Conf) MarshalJSON() ([]byte, error) {
@@ -29,7 +41,7 @@ func (c *Conf) UnmarshalJSON(b []byte) error {
 	source := string(b)
 	source = strings.Replace(source, `"`, "", -1)
 	conf := Conf(source)
-	if err := conf.IsValid(); err != nil {
+	if err := conf.Validate(); err != nil {
 		return err
 	}
 	*c = conf
@@ -48,4 +60,8 @@ const (
 
 func All() []Conf {
 	return []Conf{Nm, New, Exact, Ha, Junk, Det, Reinit}
+}
+
+func Point(c Conf) *Conf {
+	return &c
 }

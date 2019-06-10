@@ -17,7 +17,7 @@ type Photo struct {
 	PhotoName string `json:"-"`
 }
 
-func (p *Photo) IsValid() error {
+func (p *Photo) Validate() error {
 	if p.PhotoName == "" || len(p.PhotoData) == 0 || p.PhotoData == nil {
 		return fmt.Errorf("photo data or name is empty")
 	}

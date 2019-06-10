@@ -5,44 +5,12 @@ import (
 	"reflect"
 	"testing"
 
+	"github.com/golang/mock/gomock"
+
 	"github.com/identixone/identixone-go/core"
+	mock_core "github.com/identixone/identixone-go/core/mock"
+	"github.com/identixone/identixone-go/utils"
 )
-
-type MockRequester struct{}
-
-func (MockRequester) Get(string, map[string]interface{}) ([]byte, error) {
-	return []byte(`{"hello": "world"}`), nil
-}
-
-func (MockRequester) Post(string, []byte, string) ([]byte, error) {
-	return []byte(`{"hello": "world"}`), nil
-}
-
-func (MockRequester) Patch(string, []byte, string) ([]byte, error) {
-	return []byte(`{"hello": "world"}`), nil
-}
-
-func (MockRequester) Delete(string, map[string]interface{}) error {
-	return nil
-}
-
-type MockRequesterErr struct{}
-
-func (MockRequesterErr) Get(string, map[string]interface{}) ([]byte, error) {
-	return nil, fmt.Errorf("oops")
-}
-
-func (MockRequesterErr) Post(string, []byte, string) ([]byte, error) {
-	return nil, fmt.Errorf("oops")
-}
-
-func (MockRequesterErr) Patch(string, []byte, string) ([]byte, error) {
-	return nil, fmt.Errorf("oops")
-}
-
-func (MockRequesterErr) Delete(string, map[string]interface{}) error {
-	return fmt.Errorf("oops")
-}
 
 func TestNewEntries(t *testing.T) {
 
@@ -68,110 +36,151 @@ func TestNewEntries(t *testing.T) {
 }
 
 func TestEntries_List(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-	e := NewEntries(MockRequester{})
-	type args struct {
-		query map[string]interface{}
+	m := mock_core.NewMockRequester(ctrl)
+
+	m.EXPECT().
+		Get(gomock.Eq("/v1/entries/"), nil).
+		Return([]byte(`{"results": [{"id": 1}, {"id": 2}]}`), nil).
+		AnyTimes()
+
+	e := NewEntries(m)
+
+	resp, err := e.List(nil)
+	if err != nil {
+		t.Fatal(err)
 	}
-	tests := []struct {
-		name    string
-		es      *Entries
-		args    args
-		want    ListResponse
-		wantErr bool
-	}{
-		{name: "list", es: e, args: args{query: nil}, want: ListResponse{}, wantErr: false},
+	if len(resp.Entries) != 2 {
+		t.Fatal(fmt.Errorf("list response fail"))
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.es.List(tt.args.query)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Entries.List() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Entries.List() = %v, want %v", got, tt.want)
-			}
-		})
+
+	m.EXPECT().
+		Get(gomock.Eq("/v1/entries/"), gomock.Eq(map[string]interface{}{"offset": 20})).
+		Return([]byte(`{"results": []}`), nil).
+		AnyTimes()
+
+	resp, err = e.List(map[string]interface{}{"offset": 20})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(resp.Entries) != 0 {
+		t.Fatal(fmt.Errorf("list response fail"))
+	}
+
+	m.EXPECT().
+		Get(gomock.Eq("/v1/entries/"), gomock.Eq(map[string]interface{}{"bar": 20})).
+		Return(nil, fmt.Errorf("interanl error")).
+		AnyTimes()
+
+	_, err = e.List(map[string]interface{}{"bar": 20})
+	if err == nil {
+		t.Fatal(err)
+	}
+
+	m.EXPECT().
+		Get(gomock.Eq("/v1/entries/"), gomock.Eq(map[string]interface{}{"limit": -1})).
+		Return([]byte("teapot"), nil).
+		AnyTimes()
+
+	_, err = e.List(map[string]interface{}{"limit": -1})
+	if err == nil {
+		t.Fatal(err)
 	}
 }
 
 func TestEntries_Delete(t *testing.T) {
-	e := NewEntries(MockRequester{})
-	e2 := NewEntries(MockRequesterErr{})
-	type args struct {
-		id int
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	m := mock_core.NewMockRequester(ctrl)
+
+	m.EXPECT().Delete(gomock.Eq("/v1/entries/1/"), nil).
+		Return(nil).AnyTimes()
+	m.EXPECT().Delete(gomock.Eq("/v1/entries/0/"), nil).
+		Return(fmt.Errorf("not found")).AnyTimes()
+	e := NewEntries(m)
+
+	err := e.Delete(1)
+	if err != nil {
+		t.Fatal(err)
 	}
-	tests := []struct {
-		name    string
-		es      *Entries
-		args    args
-		wantErr bool
-	}{
-		{name: "not found", es: e2, args: args{id: 0}, wantErr: true},
-		{name: "valid", es: e, args: args{id: 1}, wantErr: false},
+	err = e.Delete(0)
+	if err == nil {
+		t.Fatal(err)
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.es.Delete(tt.args.id); (err != nil) != tt.wantErr {
-				t.Errorf("Entries.Delete() error = %v, wantErr %v", err, tt.wantErr)
-			}
-		})
-	}
+
 }
 
 func TestEntries_StatsIdxid(t *testing.T) {
-	e := NewEntries(MockRequester{})
-	type args struct {
-		idxid string
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	m := mock_core.NewMockRequester(ctrl)
+
+	m.EXPECT().
+		Get(gomock.Eq("/v1/entries/stats/idxid/idxid1/"), nil).
+		Return([]byte(`{"idxid": "idxid1"}`), nil).
+		AnyTimes()
+
+	m.EXPECT().
+		Get(gomock.Eq("/v1/entries/stats/idxid/idxid0/"), nil).
+		Return(nil, fmt.Errorf("not found")).
+		AnyTimes()
+
+	e := NewEntries(m)
+
+	data, err := e.StatsIdxid("idxid1")
+	if err != nil {
+		t.Fatal(err)
 	}
-	tests := []struct {
-		name    string
-		es      *Entries
-		args    args
-		want    StatsIdxid
-		wantErr bool
-	}{
-		{name: "stats idxid", es: e, args: args{idxid: ""}, want: StatsIdxid{}, wantErr: false},
+	if data.Idxid != "idxid1" {
+		t.Fatal("idxid not found")
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.es.StatsIdxid(tt.args.idxid)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Entries.StatsIdxid() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Entries.StatsIdxid() = %v, want %v", got, tt.want)
-			}
-		})
+
+	data, err = e.StatsIdxid("idxid0")
+	if err == nil {
+		t.Fatal("expected error fail")
 	}
 }
 
 func TestEntries_StatsSources(t *testing.T) {
-	e := NewEntries(MockRequester{})
-	type args struct {
-		query map[string]interface{}
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	m := mock_core.NewMockRequester(ctrl)
+	req1, err := utils.ToMap(StatsSourcesRequest{Idxid: "idxid"})
+	if err != nil {
+		t.Fatal(err)
 	}
-	tests := []struct {
-		name    string
-		es      *Entries
-		args    args
-		want    StatSourceResponse
-		wantErr bool
-	}{
-		{name: "stats sources", es: e, args: args{query: nil}, want: StatSourceResponse{}, wantErr: false},
+	req2, err := utils.ToMap(StatsSourcesRequest{})
+	if err != nil {
+		t.Fatal(err)
 	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			got, err := tt.es.StatsSources(tt.args.query)
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Entries.StatsSources() error = %v, wantErr %v", err, tt.wantErr)
-				return
-			}
-			if !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Entries.StatsSources() = %v, want %v", got, tt.want)
-			}
-		})
+
+	m.EXPECT().
+		Get(gomock.Eq("/v1/entries/stats/sources/"), req1).
+		Return([]byte(`{"count": 1}`), nil).
+		AnyTimes()
+
+	m.EXPECT().
+		Get(gomock.Eq("/v1/entries/stats/sources/"), req2).
+		Return(nil, fmt.Errorf("not found")).
+		AnyTimes()
+
+	e := NewEntries(m)
+
+	data, err := e.StatsSources(StatsSourcesRequest{Idxid: "idxid"})
+	if err != nil {
+		t.Fatal(err)
+	}
+	if data.Count != 1 {
+		t.Fatal("idxid not found")
+	}
+
+	data, err = e.StatsSources(StatsSourcesRequest{})
+	if err == nil {
+		t.Fatal("expected error fail")
 	}
 }

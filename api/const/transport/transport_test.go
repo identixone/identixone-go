@@ -2,7 +2,7 @@ package transport
 
 import "testing"
 
-func TestTransport_IsValid(t *testing.T) {
+func TestTransport_Validate(t *testing.T) {
 	tests := []struct {
 		name    string
 		t       Transport
@@ -15,8 +15,8 @@ func TestTransport_IsValid(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if err := tt.t.IsValid(); (err != nil) != tt.wantErr {
-				t.Errorf("Transport.IsValid() error = %v, wantErr %v", err, tt.wantErr)
+			if err := tt.t.Validate(); (err != nil) != tt.wantErr {
+				t.Errorf("Transport.Validate() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

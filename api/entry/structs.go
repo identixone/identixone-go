@@ -2,6 +2,8 @@ package entry
 
 import (
 	"github.com/identixone/identixone-go/api/const/conf"
+	"github.com/identixone/identixone-go/api/const/liveness"
+
 	"time"
 )
 
@@ -43,8 +45,16 @@ type StatSource struct {
 		Undetermined int `json:"undetermined"`
 	} `json:"liveness"`
 }
-
-type StatSourceResponse struct {
+type StatsSourcesRequest struct {
+	Idxid       string            `json:"idxid,omitempty"`
+	Conf        conf.Conf         `json:"conf,omitempty"`
+	Liveness    liveness.Liveness `json:"liveness,omitempty"`
+	Source      int               `json:"source,omitempty"`
+	EntryIdFrom int               `json:"entry_id_from,omitempty"`
+	DateFrom    time.Time         `json:"date_from,omitempty"`
+	DateTo      time.Time         `json:"date_to,omitempty"`
+}
+type StatSourcesResponse struct {
 	Count       int          `json:"count"`
 	Next        *string      `json:"next"`
 	Previous    *string      `json:"previous"`

@@ -5,6 +5,20 @@ import (
 	"strings"
 )
 
+type Livenesses []Liveness
+
+func (ls Livenesses) Validate() error {
+	for _, x := range ls {
+		switch x {
+		case Passed, Failed:
+			break
+		default:
+			return fmt.Errorf("livenesess must contain only Passed or Failed liveness")
+		}
+	}
+	return nil
+}
+
 type Liveness string
 
 const (

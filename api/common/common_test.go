@@ -159,7 +159,7 @@ func TestNewSearchPaginationQuery(t *testing.T) {
 	}
 }
 
-func TestPhoto_IsValid(t *testing.T) {
+func TestPhoto_Validate(t *testing.T) {
 	type fields struct {
 		PhotoData []byte
 		PhotoName string
@@ -178,8 +178,8 @@ func TestPhoto_IsValid(t *testing.T) {
 				PhotoData: tt.fields.PhotoData,
 				PhotoName: tt.fields.PhotoName,
 			}
-			if err := p.IsValid(); (err != nil) != tt.wantErr {
-				t.Errorf("Photo.IsValid() error = %v, wantErr %v", err, tt.wantErr)
+			if err := p.Validate(); (err != nil) != tt.wantErr {
+				t.Errorf("Photo.Validate() error = %v, wantErr %v", err, tt.wantErr)
 			}
 		})
 	}

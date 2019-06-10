@@ -3,6 +3,7 @@ package source
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/identixone/identixone-go/core"
 )
 
@@ -18,7 +19,7 @@ func NewSource(request core.Requester) *Sources {
 func (s *Sources) List(query map[string]interface{}) (ListResponse, error) {
 	response := ListResponse{}
 
-	data, err := s.request.Get("v1/sources/", query)
+	data, err := s.request.Get("/v1/sources/", query)
 	if err != nil {
 		return response, err
 	}
@@ -33,7 +34,7 @@ func (s *Sources) List(query map[string]interface{}) (ListResponse, error) {
 // Create new source
 func (s *Sources) Create(source Source) (Source, error) {
 	var resp Source
-	if err := source.IsValid(); err != nil {
+	if err := source.Validate(); err != nil {
 		return resp, err
 	}
 	in, err := json.Marshal(source)
@@ -71,9 +72,16 @@ func (s *Sources) Delete(id int) error {
 }
 
 // Update source
-func (s *Sources) Update(id int, data map[string]interface{}) (Source, error) {
+func (s *Sources) Update(req UpdateRequest) (Source, error) {
 	var source Source
-	in, err := json.Marshal(data)
+	if err := req.Validate(); err != nil {
+		return source, err
+	}
+
+	id := req.ID
+	req.ID = 0
+
+	in, err := json.Marshal(req)
 	if err != nil {
 		return source, err
 	}
