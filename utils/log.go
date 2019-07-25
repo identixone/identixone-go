@@ -9,6 +9,10 @@ import (
 
 var log zerolog.Logger
 
+func SetLevel(level zerolog.Level) {
+	log = log.Level(level)
+}
+
 func Debug() *zerolog.Event {
 	return log.Debug()
 }
@@ -44,8 +48,8 @@ func init() {
 	output := zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339, NoColor: false}
 	log = zerolog.New(output).With().Timestamp().Logger()
 	if os.Getenv("IDENTIXONE_DEBUG") == "true" {
-		zerolog.SetGlobalLevel(zerolog.DebugLevel)
+		SetLevel(zerolog.DebugLevel)
 	} else {
-		zerolog.SetGlobalLevel(zerolog.WarnLevel)
+		SetLevel(zerolog.WarnLevel)
 	}
 }
